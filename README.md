@@ -1,4 +1,4 @@
-# Reproductive skew can affect social informatino use
+# Reproductive skew can affect social information use
 
 Here, we publish the soruce to the simulation model for our manuscript "Reproductive skew affects social information use"
 
