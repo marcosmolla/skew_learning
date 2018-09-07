@@ -37,7 +37,7 @@ if(length(args)!=0){ # CSF hands over a process number, if there is a queue vari
 } else { #END CONDOR
   ### For local simulations:
   ### Load methods
-  setwd('~/Documents/Programming/R/learning_sexes/methods/')
+  setwd('~/Documents/Programming/R/skew_learnng/methods/') # change this line to current path of methods folder
   l <- lapply(list.files(), source)
   ### set queue to 1
   queue <- 1
@@ -45,33 +45,6 @@ if(length(args)!=0){ # CSF hands over a process number, if there is a queue vari
   library(parallel)
   library(dplyr)
 }
-
-
-#### Setting parameters for simulations on cluster >>>>>>>>>>>>>>>>>
-variances <- 100#c(1,100) # payoff variance
-mean <- 4 # the average payoff in the world
-k_seq <- (mean^2)/variances # k parameter for the gamma distribution
-
-# sequence for the environmental payoffChangeRate values
-e_seq <- 10^-1.5#10^seq(-3,0,by=.5) # environmental turnover
-
-# create all possible combinations of parameters
-# grid <- expand.grid(k=k_seq,e=e_seq, x=c(0.01,0.02,0.04,0.08,seq(from=0.1,to=1,by=.1)), p=c(0.5), h=c(T,F), r=c(.20), c=c(1), rep=1:10)
-grid <- expand.grid(k=k_seq,e=e_seq, xm=c(0.01,0.02,0.04,0.08,seq(from=0.1,to=1,by=.1)), xf=c(0.01,0.02,0.04,0.08,seq(from=0.1,to=1,by=.1)), m=1, p=c(2), h=c(F), r=c(.20), c=c(1), rep=1:10)
-#grid <- grid[grid[,"xf"]>grid[,"xm"],]
-
-# for(queue in 456:910){
-
-# choose individual parameters for the current queue
-K <- grid[queue, 'k']
-PCR <- grid[queue, 'e']
-XM <- grid[queue, 'xm']
-XF <- grid[queue, 'xf']
-M <- grid[queue, 'm']
-HFIE <- grid[queue, 'h']
-PROP <- grid[queue, 'p']
-R <- grid[queue, 'r']
-COMP <- grid[queue, 'c']
 
 
 ### Defining run routine
@@ -143,14 +116,6 @@ run <- function(setup, ceed=NULL){
 
   }
   
-  # tapply(indDF[,"innovateProp"], indDF[,"S"], mean)
-  # plot(fems, type="l", ylim=c(0,1), col="blue", xlab="time", ylab="Innovation proportion")
-  # lines(mems, col="orange")
-  
-  
-  
-  
-  
 
   ### Report additional values from the simulation
   # patchesIL <- which(colSums(!is.na(indDF_repertoir[indDF[,"innovateProp"]==1, ]))>0) # average known patch values
@@ -167,44 +132,72 @@ run <- function(setup, ceed=NULL){
 } # END RUN
 
 
+
+
+
+#### Setting parameters for simulations on cluster >>>>>>>>>>>>>>>>>
+variances <- 100#c(1,100) # payoff variance
+mean <- 4 # the average payoff in the world
+k_seq <- (mean^2)/variances # k parameter for the gamma distribution
+
+# sequence for the environmental payoffChangeRate values
+e_seq <- 10^-1.5#10^seq(-3,0,by=.5) # environmental turnover
+
+# create all possible combinations of parameters
+# grid <- expand.grid(k=k_seq,e=e_seq, x=c(0.01,0.02,0.04,0.08,seq(from=0.1,to=1,by=.1)), p=c(0.5), h=c(T,F), r=c(.20), c=c(1), rep=1:10)
+grid <- expand.grid(k=k_seq,e=e_seq, xm=c(0.01,0.02,0.04,0.08,seq(from=0.1,to=1,by=.1)), xf=c(0.01,0.02,0.04,0.08,seq(from=0.1,to=1,by=.1)), m=1, p=c(2), h=c(F), r=c(.20), c=c(1), rep=1:10)
+#grid <- grid[grid[,"xf"]>grid[,"xm"],]
+
+# for(queue in 456:910){
+
+# choose individual parameters for the current queue
+K <- grid[queue, 'k']
+PCR <- grid[queue, 'e']
+XM <- grid[queue, 'xm']
+XF <- grid[queue, 'xf']
+M <- grid[queue, 'm']
+HFIE <- grid[queue, 'h']
+PROP <- grid[queue, 'p']
+R <- grid[queue, 'r']
+COMP <- grid[queue, 'c']
+
 ### Define simulation parameters
 setup <- data.frame(
-  nRound = 5000,
-  nInd = 1000,
-  nPat = 1000,
-  payoffChangeRate = PCR,
-  payoffDis = "gamma", #expo or normal = uneven or even.
-  strategyProportion = PROP, #how many Individual Learner/Learning # use 2 for mixed/free learning
-  competition = TRUE,
-  deathRate = 1/100,#0.01,
-  maxAge = 100, #((1/50)^-1)*2
-  propStable = FALSE,#FALSE, #Freely evolving = false.
-  sexRatioStable = TRUE, #Freely evolving = false
-  mutationRate = 0.001,#2,
-  repetition = 1,
-  k = K, # shape
-  theta = 4/K, # scale
-  lethalILearning = 0,
-  competitionStrength = COMP,
-  mod = '',
-  philopatry = FALSE,
-  centralIntel = FALSE,
-  #share = SHARE, #exclude when not in use !
-  SexStratProp = .5, #1 == 100% female strategy, 0 == 100% male strategy
-  xm = XM, #proportion of MALES   with highest fitness that can actually reproduce
-  xf = XF, #proportion of FEMALES with highest fitness that can actually reproduce
-  minIncome = M,
-  highestFitnessIsEverything = HFIE,
-  temporalDiscRate = R,
+  nRound = 5000, 			# number of rounds
+  nInd = 1000, 				# number of individuals
+  nPat = 1000, 				# number of patches 
+  payoffChangeRate = PCR, 		# payoff change rate
+  payoffDis = "gamma", 			# resource distribution
+  strategyProportion = PROP, 		# how many Individual Learner/Learning # use 2 for mixed/free learning
+  competition = TRUE, 			# competition TRUE or FALSE
+  deathRate = 1/100,			# death rate
+  maxAge = 100, 			# maximum age
+  propStable = FALSE,			# is social learning evolving? # freely evolving = false
+  sexRatioStable = TRUE, 		# is the sex ration evolving? #freely evolving = false
+  mutationRate = 0.001, 		# mutation rate
+  repetition = 1, 			# number of repetitions
+  k = K, 				# shape of gamma distribution
+  theta = 4/K, 				# scale of gamma distribution
+  lethalILearning = 0, 			# probability that learning ends with individual dying 
+  competitionStrength = COMP, 		# strength of resource competition
+  mod = '', 				# model modifier
+  philopatry = FALSE, 			# are individuals philopatric?
+  centralIntel = FALSE, 		# is there central intelligence?
+  #share = SHARE, 			#exclude when not in use !
+  SexStratProp = .5, 			#1 == 100% female strategy, 0 == 100% male strategy
+  xm = XM, 				#proportion of MALES   with highest fitness that can actually reproduce
+  xf = XF, 				#proportion of FEMALES with highest fitness that can actually reproduce
+  minIncome = M, 			# minimum income to reproduce
+  highestFitnessIsEverything = HFIE, 	# are individulas in the top beta proportion equally likely to reproduce (FALSE) or relative to their fitness proxy (TRUE)
+  temporalDiscRate = R, 		# temporal discount rate
   stringsAsFactors = FALSE # thats an argument to data.frame()
 )
 
 
-# setwd("~/Desktop/learning_sexes_sex/")
 # Call simulation to run (repeatedly)
 res <- bind_rows(lapply(1:10, function(i) run(setup=setup))); table(res[,"innovateProp"]); sum(res[,"innovateProp"]==1)/nrow(res)
 # Move working directory to output
 if(!file.exists('output')) dir.create(path = 'output'); setwd('output')
 # Store results as individual files
-save(res, setup, file=paste(paste(format(Sys.time(), '%y%m%d'),'learning_sexes',queue, sep="_"), sep='/'))
+save(res, setup, file=paste(paste(format(Sys.time(), '%y%m%d'),'learning',queue, sep="_"), sep='/'))
 # }
