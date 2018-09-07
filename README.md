@@ -8,4 +8,4 @@ When running locally it is necessary to change the working directory in line 40 
 
 The methods folder has all function descriptions that will be called from the main function (`run()`) of the model. 
 
-The `run()` function requires simulation parameters, which are defined in the setup data frame. The run function uses these to setup each individual simulation, runs the model algorithm, records results, and returns these results in a summarised fashion. 
+The `run()` function requires simulation parameters, which are defined in the `setup` data frame. The run function uses these to setup each individual simulation, runs the model algorithm, records results, and returns these results in a summarised fashion. 
