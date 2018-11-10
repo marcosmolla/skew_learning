@@ -1,3 +1,4 @@
+#!/usr/bin/env Rscript
 ###
 ### Marco Smolla, Manchester University
 ### 15-05-2014
@@ -15,29 +16,30 @@
 # determine the queue number of this process (necessary when saving the results)
 ### Load world parameters
 
-# BEGIN CONDOR Computer Cluster
+# BEGIN SLURM Computer Cluster
 ### Set-up packages
-args <- commandArgs(TRUE)
-if(length(args)!=0){ # CSF hands over a process number, if there is a queue variable we are in CONDOR, otherwise we work locally; Note: in CSF the varaiables are already in the right shape
-  for(i in 1:length(args)){
-    eval(parse(text=args[[i]]))
-  }
+if(Sys.getenv("USER")=="uma"){ # At Slurm my user name is uma, if this is detected, we are executing on Slurm
 
+  syse <- Sys.getenv(c("SLURM_ARRAY_JOB_ID","SLURM_ARRAY_TASK_ID"))
+  jobID <- syse[1]
+  queue <- syse[2]
+
+  ### load additional packages
+  require(methods)
+  require(dplyr)
 
   ### Load methods
   if(file.exists('methods.tar')) untar(tarfile="methods.tar", exdir=".")
-  setwd('./methods')
+  setwd('methods')
   files<-list.files()
   lapply(files, source)
   setwd('../')
   if(file.exists('methods.tar'))	unlink('methods',recursive=TRUE)
-  ### load additional packages
-  library(dplyr)
 
 } else { #END CONDOR
   ### For local simulations:
   ### Load methods
-  setwd('~/Documents/Programming/R/skew_learnng/methods/') # change this line to current path of methods folder
+  setwd('/Users/marco/Documents/Programming/R/learning_sexes/skew_learning_git/methods/') # change this line to current path of methods folder
   l <- lapply(list.files(), source)
   ### set queue to 1
   queue <- 1
@@ -56,7 +58,7 @@ run <- function(setup, ceed=NULL){
 
   ### Defining the data objects
   patDF <- as.matrix(data.frame(id=0:(setup$nPat), payoff=0, agentsPresent=NA, competitionPayOff=NA))#;patDF #formerly known as world@patch ### Patches in the world
-  indDF <- as.matrix(data.frame(id=1:setup$nInd, nRound=1, nExploit=0, innovateProp=NA, atPatch=0, learn=NA, fitness=0, yield=0, yield2=0, S=0, fitness_variance=0, m1=NA,m2=NA,f1=NA,f2=NA))#;indDF ### Single data to be stored for every living individual (row-wise)
+  indDF <- as.matrix(data.frame(id=1:setup$nInd, nRound=1, nExploit=0, innovateProp=NA, atPatch=0, learn=NA, fitness=0, yield=0, yield2=0, S=0, fitness_variance=0, m1=NA,f1=NA))#;indDF ### Single data to be stored for every living individual (row-wise)
 
   ### Multiple data stored for every individual (column-wise)
   indDF_repertoir <- matrix(NA,nrow=setup$nInd, ncol=(setup$nPat+1)) #nrow is max 100 because all individuals die
@@ -66,19 +68,17 @@ run <- function(setup, ceed=NULL){
   # Set males and females; 1=female, 0=male
   if( round(setup$SexStratProp*setup$nInd)>0 ) indDF[ 1:round(setup$SexStratProp*setup$nInd) ,'S'] <- 1
   # Select columns to set genetic predisposition for individual learning, for male parent 1/2, and female parent 1/2 gene
-  genes <- colnames(indDF)%in%c("m1","m2","f1","f2")
+  genes <- colnames(indDF)%in%c("m1","f1")
   # Choose values from a uniform distribution for this predisposition
-  
-  if(setup$strategyProportion==2) indDF[,genes] <- round(runif(min=0,max=1,n=setup$nInd*4),2) # for free innovateProp
-  if(setup$strategyProportion!=2) indDF[,genes] <- round(runif(min=0,max=1,n=setup$nInd*4)) # for fixed innovateProp
+
+  if(setup$strategyProportion==2) indDF[,genes] <- round(runif(min=0,max=1,n=setup$nInd*2),2) # for free innovateProp
+  if(setup$strategyProportion!=2) indDF[,genes] <- round(runif(min=0,max=1,n=setup$nInd*2)) # for fixed innovateProp
   # Assign values for females from mothers
-  if(setup$strategyProportion==2) indDF[ indDF[,"S"]==1 ,"innovateProp"] <- round(rowMeans(indDF[ indDF[,"S"]==1 , c("f1","f2")]), 2) # for free innovateProp
-  if(setup$strategyProportion!=2) indDF[ indDF[,"S"]==1 ,"innovateProp"] <- round(rowMeans(indDF[ indDF[,"S"]==1 , c("f1","f2")])/.5)*.5# round(rowMeans(indDF[ indDF[,"S"]==1 , c("f1","f2")]), 1) # for fixed innovateProp
+	indDF[ indDF[,"S"]==1 ,"innovateProp"] <- indDF[ indDF[,"S"]==1 , "f1"]
   # Assign values for males from fathers
-  if(setup$strategyProportion==2) indDF[ indDF[,"S"]==0 ,"innovateProp"] <- round(rowMeans(indDF[ indDF[,"S"]==0 , c("m1","m2")]), 2)
-  if(setup$strategyProportion!=2) indDF[ indDF[,"S"]==0 ,"innovateProp"] <- round(rowMeans(indDF[ indDF[,"S"]==1 , c("m1","m2")])/.5)*.5# round(rowMeans(indDF[ indDF[,"S"]==0 , c("m1","m2")]), 1)
-  
-  
+	indDF[ indDF[,"S"]==0 ,"innovateProp"] <- indDF[ indDF[,"S"]==0 , "m1"]
+
+
   time <- 0
   allSame <- length(unique(indDF[,"innovateProp"]))==1
   fems <- rep(NA, setup$nRound)
@@ -107,7 +107,7 @@ run <- function(setup, ceed=NULL){
       }
         indDF <- sexreproduction(setup = setup, indDF = indDF) ;indDF
     }
-    
+
     fems[time] <- mean(indDF[ indDF[,"S"]==1, "innovateProp"])
     mems[time] <- mean(indDF[ indDF[,"S"]==0, "innovateProp"])
 
@@ -115,7 +115,7 @@ run <- function(setup, ceed=NULL){
     if(time == setup$nRound) allSame <- T
 
   }
-  
+
 
   ### Report additional values from the simulation
   # patchesIL <- which(colSums(!is.na(indDF_repertoir[indDF[,"innovateProp"]==1, ]))>0) # average known patch values
@@ -126,7 +126,7 @@ run <- function(setup, ceed=NULL){
   # diffpatSL <- ifelse(length(patchesSL)>0, length(patchesSL), 0)
   femIL <- mean(tail(fems, 1000), na.rm=T)
   memIL <- mean(tail(mems, 1000), na.rm=T)
-  
+
   # return(cbind(indDF, setup, payIL, paySL, diffpatIL, diffpatSL))
   return(cbind(indDF, setup, femIL, memIL, time))
 } # END RUN
@@ -145,7 +145,7 @@ e_seq <- 10^-1.5#10^seq(-3,0,by=.5) # environmental turnover
 
 # create all possible combinations of parameters
 # grid <- expand.grid(k=k_seq,e=e_seq, x=c(0.01,0.02,0.04,0.08,seq(from=0.1,to=1,by=.1)), p=c(0.5), h=c(T,F), r=c(.20), c=c(1), rep=1:10)
-grid <- expand.grid(k=k_seq,e=e_seq, xm=c(0.01,0.02,0.04,0.08,seq(from=0.1,to=1,by=.1)), xf=c(0.01,0.02,0.04,0.08,seq(from=0.1,to=1,by=.1)), m=1, p=c(2), h=c(F), r=c(.20), c=c(1), rep=1:10)
+grid <- expand.grid(k=k_seq,e=e_seq, xm=c(0.01,0.02,0.04,0.08,seq(from=0.1,to=1,by=.1)), xf=c(0.01,0.02,0.04,0.08,seq(from=0.1,to=1,by=.1)), m=0, p=c(.5), h=c(F), r=c(.20), c=c(1), rep=1:5)
 #grid <- grid[grid[,"xf"]>grid[,"xm"],]
 
 # for(queue in 456:910){
@@ -163,9 +163,9 @@ COMP <- grid[queue, 'c']
 
 ### Define simulation parameters
 setup <- data.frame(
-  nRound = 5000, 			# number of rounds
-  nInd = 1000, 				# number of individuals
-  nPat = 1000, 				# number of patches 
+  nRound = 10000, 			# number of rounds
+  nInd = 100, 				# number of individuals
+  nPat = 100, 				# number of patches
   payoffChangeRate = PCR, 		# payoff change rate
   payoffDis = "gamma", 			# resource distribution
   strategyProportion = PROP, 		# how many Individual Learner/Learning # use 2 for mixed/free learning
@@ -174,11 +174,11 @@ setup <- data.frame(
   maxAge = 100, 			# maximum age
   propStable = FALSE,			# is social learning evolving? # freely evolving = false
   sexRatioStable = TRUE, 		# is the sex ration evolving? #freely evolving = false
-  mutationRate = 0.001, 		# mutation rate
+  mutationRate = 0.01, 		# mutation rate
   repetition = 1, 			# number of repetitions
   k = K, 				# shape of gamma distribution
   theta = 4/K, 				# scale of gamma distribution
-  lethalILearning = 0, 			# probability that learning ends with individual dying 
+  lethalILearning = 0, 			# probability that learning ends with individual dying
   competitionStrength = COMP, 		# strength of resource competition
   mod = '', 				# model modifier
   philopatry = FALSE, 			# are individuals philopatric?

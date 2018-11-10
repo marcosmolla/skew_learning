@@ -117,11 +117,11 @@ setGeneric('sexreproduction', function(setup, indDF) standardGeneric('sexreprodu
 setMethod(f = 'sexreproduction', signature = c(setup='data.frame', indDF='matrix'), definition = function(setup, indDF){
   # Individauls which are still alive
   alive <- indDF[,'nRound']>0
-  
+
   # Determine eligible individuals for reproduction
   females <- eligible(x=indDF[alive & !is.na(indDF[,"fitness"]) & rowSums(indDF[,c("yield","yield2")])>=setup$minIncome & indDF[,"S"]==1, c("id", "fitness")], threshold=setup$xf)
-    males <- eligible(x=indDF[alive & !is.na(indDF[,"fitness"]) &                                                         indDF[,"S"]==0, c("id", "fitness")], threshold=setup$xm) 
-    # males <- eligible(x=indDF[alive & !is.na(indDF[,"fitness"]) & indDF[,"yield"]>=setup$minIncome & indDF[,"S"]==0, c("id", "fitness")], threshold=setup$xm) 
+    males <- eligible(x=indDF[alive & !is.na(indDF[,"fitness"]) &                                                         indDF[,"S"]==0, c("id", "fitness")], threshold=setup$xm)
+    # males <- eligible(x=indDF[alive & !is.na(indDF[,"fitness"]) & indDF[,"yield"]>=setup$minIncome & indDF[,"S"]==0, c("id", "fitness")], threshold=setup$xm)
 
   # For reproduction, at least one male and one female is required
   if(length(males)>0 & length(females)>0){
@@ -132,49 +132,51 @@ setMethod(f = 'sexreproduction', signature = c(setup='data.frame', indDF='matrix
     # Choose Fathers (either with realtive to fitness, or with equal probabilities)
     if(setup$highestFitnessIsEverything) probM <- indDF[  males, "fitness"] else probM <- NULL
     fathers <- mySample(n=  males, size=sum(!alive), replace=T, prob=probM)
-    
-    # Now we will choose the genes inherited by the two parents, for each new individual 
+
+    # Now we will choose the genes inherited by the two parents, for each new individual
     for(i in 1:sum(!alive)){
       ID <- which(!alive)[i]
       # Determine female genes (one from the mother, one from the father)
-      indDF[ID, c("f1","f2")] <- c( mySample(indDF[mothers[i], c("f1","f2")], size=1), mySample(indDF[fathers[i], c("f1","f2")], size=1) )
+      # indDF[ID, c("f1","f2")] <- c( mySample(indDF[mothers[i], c("f1","f2")], size=1), mySample(indDF[fathers[i], c("f1","f2")], size=1) )
+			indDF[ID, "f1"] <- indDF[mothers[i], "f1"]
       # Determine   male genes (one from the mother, one from the father)
-      indDF[ID, c("m1","m2")] <- c( mySample(indDF[mothers[i], c("m1","m2")], size=1), mySample(indDF[fathers[i], c("m1","m2")], size=1) )
-      
+      # indDF[ID, c("m1","m2")] <- c( mySample(indDF[mothers[i], c("m1","m2")], size=1), mySample(indDF[fathers[i], c("m1","m2")], size=1) )
+			indDF[ID, "m1"] <- indDF[fathers[i], "m1"]
+
       # # Add some noise (ONLY FOR FREE INNOVATEPROP)
       if(setup$strategyProportion==2){
-        mut<-runif(4,0,1)<setup$mutationRate
-        indDF[ID, c("f1","f2","m1","m2")][mut] <- round(rnorm(n=sum(mut), mean=indDF[ID, c("f1","f2","m1","m2")][mut], sd=0.1),2)
+        mut<-runif(2,0,1)<setup$mutationRate
+        indDF[ID, c("f1","m1")][mut] <- round(rnorm(n=sum(mut), mean=indDF[ID, c("f1","m1")][mut], sd=0.1),2)
         # indDF[ID, c("f1","f2","m1","m2")] <- round(rnorm(n=4, mean=indDF[ID, c("f1","f2","m1","m2")], sd=0.1),2)
-        indDF[ID, c("f1","f2","m1","m2")][indDF[ID, c("f1","f2","m1","m2")]>1] <- 1
-        indDF[ID, c("f1","f2","m1","m2")][indDF[ID, c("f1","f2","m1","m2")]<0] <- 0
+        indDF[ID, c("f1","m1")][indDF[ID, c("f1","m1")]>1] <- 1
+        indDF[ID, c("f1","m1")][indDF[ID, c("f1","m1")]<0] <- 0
         }
       # Mutation (ONLY FOR FIXED INNOVATEPROP)
       if(setup$strategyProportion!=2){
-        indDF[ID, c("f1","f2","m1","m2")] <- abs((runif(4,0,1)<setup$mutationRate) - indDF[ID, c("f1","f2","m1","m2")])
+        indDF[ID, c("f1","m1")] <- abs((runif(2,0,1)<setup$mutationRate) - indDF[ID, c("f1","m1")])
         }
-      
+
       # Determine sex of the newborn
       indDF[ID, "S"] <- sample(c(0,1), size=1)
-      
+
       # Determine innovation proportion based on sex
       if(setup$strategyProportion==2){
-        if(indDF[ID, "S"]==1) iP <- round(mean(indDF[ ID , c("f1","f2")]), 2)  else iP <- round(mean(indDF[ ID , c("m1","m2")]), 2) # for free innnovateProp
+        if(indDF[ID, "S"]==1) iP <- round(indDF[ ID , "f1"], 2)  else iP <- round(indDF[ ID , "m1"], 2) # for free innnovateProp
       }
       if(setup$strategyProportion!=2){
-        if(indDF[ID, "S"]==1) iP <- round(mean(indDF[ ID , c("f1","f2")])/.5)*.5  else iP <- round(mean(indDF[ ID , c("m1","m2")])/.5)*.5 # for fixed innovateProp
+        if(indDF[ID, "S"]==1) iP <- indDF[ ID , "f1"]  else iP <- indDF[ ID , "m1"] # for fixed innovateProp
       }
       indDF[ ID ,"innovateProp"] <- iP
-      
+
       # Reset data frame to accomodate newborn
-      indDF[ ID , which(!colnames(indDF)%in%c('id','innovateProp','S',"m1","m2","f1","f2")) ] <- 0
+      indDF[ ID , which(!colnames(indDF)%in%c('id','innovateProp','S',"m1","f1")) ] <- 0
       # if(any(!indDF[,"innovateProp"]%in%c(0,.5,1))) browser()
       indDF[ ID ,"nRound" ] <- 1
     }
-    
+
   } else {
     indDF[ !alive ,"nRound" ] <- -100
   }
-  
+
   return(indDF)
 })
