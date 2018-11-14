@@ -145,7 +145,7 @@ e_seq <- 10^-1.5#10^seq(-3,0,by=.5) # environmental turnover
 
 # create all possible combinations of parameters
 # grid <- expand.grid(k=k_seq,e=e_seq, x=c(0.01,0.02,0.04,0.08,seq(from=0.1,to=1,by=.1)), p=c(0.5), h=c(T,F), r=c(.20), c=c(1), rep=1:10)
-grid <- expand.grid(k=k_seq,e=e_seq, xm=c(0.01,0.02,0.04,0.08,seq(from=0.1,to=1,by=.1)), xf=c(0.01,0.02,0.04,0.08,seq(from=0.1,to=1,by=.1)), m=0, p=c(.5), h=c(F), r=c(.20), c=c(1), rep=1:5)
+grid <- expand.grid(k=k_seq,e=e_seq, xm=c(0.01,0.02,0.04,0.08,seq(from=0.1,to=1,by=.1)), xf=c(0.01,0.02,0.04,0.08,seq(from=0.1,to=1,by=.1)), m=1, p=c(.5,2), h=c(F), r=c(.20), c=c(1), rep=1:5)
 #grid <- grid[grid[,"xf"]>grid[,"xm"],]
 
 # for(queue in 456:910){
