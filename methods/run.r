@@ -5,15 +5,16 @@ run <- function(setup, ceed=NULL){
   set.seed(ceed)
   setup$seed <- ceed
   
-  ### Defining the data objects
-  patDF <- as.matrix(data.frame(id=0:(setup$nPat), payoff=0, agentsPresent=NA, competitionPayOff=NA))#;patDF #formerly known as world@patch ### Patches in the world
-  indDF <- as.matrix(data.frame(id=1:setup$nInd, nRound=1, nExploit=0, innovateProp=NA, atPatch=0, learn=NA, fitness=0, yield=0, yield2=0, S=0, fitness_variance=0, m1=NA,f1=NA))#;indDF ### Single data to be stored for every living individual (row-wise)
+  ### Patches in the world
+  patDF <- as.matrix(data.frame(id=0:(setup$nPat), payoff=0, agentsPresent=NA, competitionPayOff=NA))
+  ### Single data to be stored for every living individual (row-wise)
+  indDF <- as.matrix(data.frame(id=1:setup$nInd, nRound=1, nExploit=0, innovateProp=NA, atPatch=0, learn=NA, fitness=0, yield=0, yield2=0, S=0, fitness_variance=0, m1=NA,f1=NA)) 
   
   ### Multiple data stored for every individual (column-wise)
-  indDF_repertoir <- matrix(NA,nrow=setup$nInd, ncol=(setup$nPat+1)) #nrow is max 100 because all individuals die
-  indDF_collectedPayoff <- matrix(NA, ncol=setup$maxAge, nrow=setup$nInd)#columns are rounds, rows are indviduals
+  indDF_repertoir <- matrix(NA,nrow=setup$nInd, ncol=(setup$nPat+1)) # nrow is max 100 because all individuals die
+  indDF_collectedPayoff <- matrix(NA, ncol=setup$maxAge, nrow=setup$nInd) # columns are rounds, rows are indviduals
   
-  patDF <- changeWorld(patDF=patDF, pat=nrow(patDF), create = T, payoffDis = as.character(setup$payoffDis), mod = '', setup=setup)# ;patDF
+  patDF <- changeWorld(patDF=patDF, pat=nrow(patDF), create = T, payoffDis = as.character(setup$payoffDis), mod = '', setup=setup)
   # Set males and females; 1=female, 0=male
   if( round(setup$SexStratProp*setup$nInd)>0 ) indDF[ 1:round(setup$SexStratProp*setup$nInd) ,'S'] <- 1
   # Select columns to set genetic predisposition for individual learning, for male parent 1/2, and female parent 1/2 gene
@@ -35,20 +36,21 @@ run <- function(setup, ceed=NULL){
   
   while(!allSame){
     time <- time+1
-    patDF           <- changeWorld(patDF=patDF, pat=nrow(patDF), create = F, payoffDis = as.character(setup$payoffDis), mod='', setup=setup) #;patDF
-    observable 			<- observation(indDF) ;observable
-    indDF 					<- whichAction(indDF = indDF, nInd = setup$nInd, indDF_repertoir = indDF_repertoir, patDF=patDF, setup=setup) #;indDF
-    indDF 					<- whichLearning(nInd = setup$nInd, indDF = indDF) ;indDF
-    indDF_repertoir <- formingMemory(setup = setup, patDF = patDF, indDF = indDF, indDF_repertoir = indDF_repertoir, observable = observable, mod='') #;indDF_repertoir
-    patDF           <- individualsAtPatch(patDF = patDF, indDF = indDF, setup=setup) #;patDF
-    indDF           <- whichPayoff(setup = setup, patDF = patDF, indDF = indDF, mod = '') #;indDF
-    indDF_repertoir <- updateMemory(indDF_repertoir = indDF_repertoir, indDF = indDF, mod=setup$mod) #;indDF_repertoir
+    patDF           <- changeWorld(patDF=patDF, pat=nrow(patDF), create = F, payoffDis = as.character(setup$payoffDis), mod='', setup=setup)
+    observable 			<- observation(indDF)
+    indDF 					<- whichAction(indDF = indDF, nInd = setup$nInd, indDF_repertoir = indDF_repertoir, patDF=patDF, setup=setup)
+    indDF 					<- whichLearning(nInd = setup$nInd, indDF = indDF)
+    indDF_repertoir <- formingMemory(setup = setup, patDF = patDF, indDF = indDF, indDF_repertoir = indDF_repertoir, observable = observable, mod='')
+    patDF           <- individualsAtPatch(patDF = patDF, indDF = indDF, setup=setup)
+    indDF           <- whichPayoff(setup = setup, patDF = patDF, indDF = indDF, mod = '')
+    indDF_repertoir <- updateMemory(indDF_repertoir = indDF_repertoir, indDF = indDF, mod=setup$mod)
     alive <- which(indDF[,"nRound"]>0)
     learn <- which( !is.na(indDF[,'learn']) & (indDF[,"nRound"] > 0) )
     indDF_collectedPayoff[ cbind(alive,indDF[alive,"nRound"]) ] <- indDF[alive,"yield"]
-    indDF_collectedPayoff[ cbind(learn,indDF[learn,"nRound"]) ] <- NA #;indDF_collectedPayoff[,1:10] # use NAs to indicate learning turns; otherwise they overly increase the variance
-    indDF           <- updatePayoffs(indDF = indDF, indDF_collectedPayoff=indDF_collectedPayoff, setup = setup) #;indDF
-    indDF           <- ageAndDie(setup = setup, indDF = indDF, mod='') ;indDF
+    indDF_collectedPayoff[ cbind(learn,indDF[learn,"nRound"]) ] <- NA # use NAs to indicate learning turns; otherwise they overly increase the variance
+    indDF           <- updatePayoffs(indDF = indDF, indDF_collectedPayoff=indDF_collectedPayoff, setup = setup)
+    indDF           <- ageAndDie(setup = setup, indDF = indDF, mod='')
+    
     if(sum(indDF[,'nRound']<0) > 0){
       for(h in which(indDF[,'nRound']<0)){
         indDF_repertoir[h,1:(setup$nPat+1)] <- NA
