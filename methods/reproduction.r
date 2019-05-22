@@ -74,17 +74,7 @@ setMethod(f = 'reproduction', signature = c(setup='data.frame', indDF='matrix', 
     if(minn>length(ordered)) minn <- length(ordered) # in case there are individuals included with fitnes NA, reduce it to the number of above individuals with fitness != NA
     lowestreproducingmale <- indDF[m&alive,'id'][ordered][ifelse(minn<1,1,minn)] #returns position of x-th lowest male.
     male <- (indDF[,"fitness"] >= indDF[lowestreproducingmale, 'fitness']) & m & alive #returns true if fitness exceeds lowest reproducing male and that male is alive!
-  }
-
-  if(reprul=='var'){ # selecting by highest variance
-    stop("Rule 'var' not defined. Check reproduction.r code!")
-    # ordered <- order(indDF[m & alive,'fitness_variance'], decreasing=FALSE, na.last = NA) #orders by fitness values, in decreasing order because NA's are put at the bottom, largest . NA's are now removed.#This includes dead individuals!
-    # minn <- round(sum(m&alive)*setup$x)
-    # if(minn>length(ordered)) minn <- length(ordered) # in case there are individuals included with fitnes NA, reduce it to the number of above individuals with fitness != NA
-    # lowestreproducingmale <- indDF[m&alive,'id'][ordered][ifelse(minn<1,1,minn)] #returns position of x-th lowest male.
-    # male <- (indDF[,"fitness_variance"] <= indDF[lowestreproducingmale, 'fitness_variance']) & m & alive #returns true if fitness exceeds lowest reproducing male and that male is alive!
-    }
-  if(reprul!="fit"&reprul!="var") {stop("At the moment there is only fit and var implemented!")}
+  } else {stop("This reprul is not defined, see function reproduction.r")}
 
   who <- which(alive&male) # this is/are the one/ones who can potentially reproduce
 
@@ -102,10 +92,8 @@ eligible <- function(x, threshold){
     if(is.null(nrow(x))){ # that is the case when only one value was handed over
       return( as.numeric(x["id"]) )
     } else {
-      # x[,"fitness"] %>% percent_rank() >= 1-threshold -> who
       x[,"fitness"] %>% order(decreasing=T) -> o
       id <- x[o,"id"][ 1:( length(x[,"id"])*threshold ) ]
-      # stop("check this ranking thingy again")
       return( id )
     }
   }
@@ -121,7 +109,6 @@ setMethod(f = 'sexreproduction', signature = c(setup='data.frame', indDF='matrix
   # Determine eligible individuals for reproduction
   females <- eligible(x=indDF[alive & !is.na(indDF[,"fitness"]) & rowSums(indDF[,c("yield","yield2")])>=setup$minIncome & indDF[,"S"]==1, c("id", "fitness")], threshold=setup$xf)
     males <- eligible(x=indDF[alive & !is.na(indDF[,"fitness"]) &                                                         indDF[,"S"]==0, c("id", "fitness")], threshold=setup$xm)
-    # males <- eligible(x=indDF[alive & !is.na(indDF[,"fitness"]) & indDF[,"yield"]>=setup$minIncome & indDF[,"S"]==0, c("id", "fitness")], threshold=setup$xm)
 
   # For reproduction, at least one male and one female is required
   if(length(males)>0 & length(females)>0){
@@ -137,10 +124,8 @@ setMethod(f = 'sexreproduction', signature = c(setup='data.frame', indDF='matrix
     for(i in 1:sum(!alive)){
       ID <- which(!alive)[i]
       # Determine female genes (one from the mother, one from the father)
-      # indDF[ID, c("f1","f2")] <- c( mySample(indDF[mothers[i], c("f1","f2")], size=1), mySample(indDF[fathers[i], c("f1","f2")], size=1) )
 			indDF[ID, "f1"] <- indDF[mothers[i], "f1"]
       # Determine   male genes (one from the mother, one from the father)
-      # indDF[ID, c("m1","m2")] <- c( mySample(indDF[mothers[i], c("m1","m2")], size=1), mySample(indDF[fathers[i], c("m1","m2")], size=1) )
 			indDF[ID, "m1"] <- indDF[fathers[i], "m1"]
 
       # # Add some noise (ONLY FOR FREE INNOVATEPROP)
@@ -170,7 +155,6 @@ setMethod(f = 'sexreproduction', signature = c(setup='data.frame', indDF='matrix
 
       # Reset data frame to accomodate newborn
       indDF[ ID , which(!colnames(indDF)%in%c('id','innovateProp','S',"m1","f1")) ] <- 0
-      # if(any(!indDF[,"innovateProp"]%in%c(0,.5,1))) browser()
       indDF[ ID ,"nRound" ] <- 1
     }
 

@@ -35,7 +35,7 @@ grid <- expand.grid(k=k_seq, # k parameter of gamma distribution
 
 # Loop over all parameter combinations
 # for(queue in 456:910){ 
-  # choose individual parameters for the current queue
+  # select individual parameters for the current queue number
   K <- grid[queue, 'k']
   PCR <- grid[queue, 'e']
   XM <- grid[queue, 'xm']
@@ -80,9 +80,12 @@ grid <- expand.grid(k=k_seq, # k parameter of gamma distribution
   
   
   # Call simulation to run (repeatedly)
-  res <- bind_rows(lapply(1:10, function(i) run(setup=setup))); table(res[,"innovateProp"]); sum(res[,"innovateProp"]==1)/nrow(res)
+  res <- bind_rows(lapply(1:10, # repeats the same simulation 10 times in the same job call
+                          function(i) run(setup=setup)))
+  
   # Move working directory to output
   if(!file.exists('output')) dir.create(path = 'output'); setwd('output')
+  
   # Store results as individual files
   save(res, setup, file=paste(paste(format(Sys.time(), '%y%m%d'),'learning',queue, sep="_"), sep='/'))
 # }
