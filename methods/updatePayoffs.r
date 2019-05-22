@@ -30,7 +30,7 @@ setMethod(f = 'updatePayoffs', signature = c(indDF='matrix', indDF_collectedPayo
   tmp <- do.call(rbind,lapply(which(rueq0), function(i){
     dur <- indDF[i,"nRound"]
     temporalDiscount(x=indDF_collectedPayoff[i,1:dur], windowSize = 5, meanFit=popMeanFit, setup=setup)
-  }))#;tmp
+  }))
   tmp[,"fit_sum"][is.nan(tmp[,"fit_sum"])] <- NA
   indDF[,'fitness'][rueq0]<- tmp[,"fit_sum"]
   indDF[,'fitness_variance'][rueq0]<- tmp[,"fit_var"]
